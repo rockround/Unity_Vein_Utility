@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.VersionControl;
 using UnityEngine;
 
 public class LineDrawer : MonoBehaviour
@@ -17,8 +19,11 @@ public class LineDrawer : MonoBehaviour
     List<Vector3> positions;
     List<Vector3> normals;
     List<int> triangles;
+    List<Vector2> uvs;
     Mesh currentMesh;
-
+    public MeshFilter mf;
+    public MeshRenderer mr;
+    public bool saveAsset;
     // Start is called before the first frame update
     void Start()
     {
@@ -27,6 +32,7 @@ public class LineDrawer : MonoBehaviour
         positions = new List<Vector3>();
         triangles = new List<int>();
         normals = new List<Vector3>();
+        uvs = new List<Vector2>();
     }
 
     // Update is called once per frame
@@ -46,17 +52,29 @@ public class LineDrawer : MonoBehaviour
                     points += 1;
                     if (points == 1)
                     {
-                        start = hit.point;
+                        start = hit.point;                        
+                        print("Start direction: " + hit.normal);
                         startNorm = hit.normal;
+
 
                     }
                     else if (points == 2)
                     {
                         end = hit.point;
                         endNorm = -hit.normal;
+                        print("End direction: " + -hit.normal);
+
                         Tuple<List<Vector3>, List<Vector3>> pointData = generatePoints(start, end, startNorm, endNorm);
                         List<Vector3> points = pointData.Item1;
                         List<Vector3> directions = pointData.Item2;
+                        List<Color> colors = new List<Color>();
+
+                        int layers = points.Count;
+
+                        float intensityPerColor = 1f / layers;
+
+                        float deltaUVX = 1f / ringVertices;
+                        float deltaUVY = 1f / layers;
 
                         for (int i = 0; i < points.Count; i++)
                         {
@@ -66,11 +84,17 @@ public class LineDrawer : MonoBehaviour
                             //ringNorms.Add(pointSet.Item2);
                             positions.AddRange(pointSet.Item1);
                             normals.AddRange(pointSet.Item2);
-                            
+
+                            //Adds colors corresponding to the layering
+                            for (int j = 0; j < ringVertices; j++)
+                            {
+                                colors.Add(intensityPerColor * i * Color.white);
+                                uvs.Add(new Vector2(deltaUVX * j, deltaUVY * i));
+                            }
+
                             //point is centroid of tube
                             lr.SetPosition(i, points[i]);
                         }
-                        int layers = points.Count;
                         for (int j = 0; j < layers - 1; j++)
                         {
                             for (int i = 0; i < ringVertices; i++)
@@ -83,8 +107,8 @@ public class LineDrawer : MonoBehaviour
                                 int b = layer1 * ringVertices + idx2;
                                 int d = layer2 * ringVertices + idx2;
                                 triangles.Add(a);
-                                triangles.Add(b);
                                 triangles.Add(d);
+                                triangles.Add(b);
                             }
                             for (int i = 0; i < ringVertices; i++)
                             {
@@ -97,14 +121,25 @@ public class LineDrawer : MonoBehaviour
                                 int c = layer2 * ringVertices + idx1;
                                 int d = layer2 * ringVertices + idx2;
                                 triangles.Add(c);
-                                triangles.Add(a);
                                 triangles.Add(d);
+                                triangles.Add(a);
                             }
                         }
                         currentMesh = new Mesh();
                         currentMesh.SetVertices(positions);
                         currentMesh.SetTriangles(triangles, 0);
                         currentMesh.SetNormals(normals);
+                        currentMesh.SetUVs(0,uvs);
+                        currentMesh.SetColors(colors);
+                        currentMesh.UploadMeshData(true);
+
+                        mf.mesh = currentMesh;
+                        mr.UpdateGIMaterials();
+                        if (saveAsset)
+                        {
+                            AssetDatabase.CreateAsset(currentMesh, @"Assets\Prefabs\mesh.asset");
+                            AssetDatabase.SaveAssets();
+                        }
                         selection = false;
                     }
                 }
@@ -113,6 +148,7 @@ public class LineDrawer : MonoBehaviour
             {
                 //ringPoss.Clear();
                 //ringNorms.Clear();
+                uvs.Clear();
                 normals.Clear();
                 lr.positionCount = 0;
                 positions.Clear();
@@ -126,7 +162,7 @@ public class LineDrawer : MonoBehaviour
             //if vertices already generated
             if (!selection)
             {
-                for(int i = 0; i< triangles.Count; i+=3)
+                for (int i = 0; i < triangles.Count; i += 3)
                 {
                     Vector3 v1 = positions[triangles[i]];
                     Vector3 v2 = positions[triangles[i + 1]];
@@ -180,17 +216,23 @@ public class LineDrawer : MonoBehaviour
         List<Vector3> points = new List<Vector3>();
         List<Vector3> directions = new List<Vector3>();
         Vector3 prevPoint = Vector3.zero;
-        for (float t = 0; t <= 1 + granularity; t += granularity)
+        int iterations = Mathf.RoundToInt(1f / granularity);
+        //directions.Add(startNorm);
+        for (int i= 0; i <= iterations; i ++)
         {
+            float t = i * granularity; 
             Vector3 point = (2 * t * t * t - 3 * t * t + 1) * start + (t * t * t - 2 * t * t + t) * startNorm + (-2 * t * t * t + 3 * t * t) * end + (t * t * t - t * t) * endNorm;
+            Vector3 direction = (6 * t * t - 6 * t) * start + (3 * t * t - 4 * t + 1) * startNorm + (-6 * t * t + 6 * t) * end + (3 * t * t - 2 * t) * endNorm;
             points.Add(point);
-            if (t > 0)
+            directions.Add(direction);
+            /*if (t > 0)
             {
                 directions.Add((point - prevPoint).normalized);
             }
-            prevPoint = point;
+            prevPoint = point;*/
         }
-        directions.Add(endNorm);
+        //directions.RemoveAt(points.Count - 1);
+        //directions.Add(endNorm);
         return new Tuple<List<Vector3>, List<Vector3>>(points, directions);
     }
 }

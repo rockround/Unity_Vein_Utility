@@ -38,9 +38,9 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Floats:
     - Vector1_4993F132: 3.16
-    - Vector1_5EDE1230: 2.72
-    - Vector1_B2CC154D: 0.78
-    - Vector1_E69922C: 1
+    - Vector1_5EDE1230: 2.98
+    - Vector1_B2CC154D: 0.27
+    - Vector1_E69922C: 2.73
     - _BlendOp: 0
     - _BumpScale: 1
     - _CameraFadingEnabled: 0
