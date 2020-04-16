@@ -203,6 +203,8 @@ public class LineDrawer : MonoBehaviour
             float time = Time.timeSinceLevelLoad;
             float period = phaseLength;
             float angularVelocity = 2 * Mathf.PI / period;
+            float frameSize = Mathf.PI / (period + 2);
+            mat.SetFloat("windowSize", frameSize);
             mat.SetFloat("speed", angularVelocity);
             mat.SetFloat("offsetTime", time);
             mat.SetFloat("maxTime", time + period/2);
