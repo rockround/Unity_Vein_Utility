@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using UnityEditor;
 using UnityEditor.VersionControl;
 using UnityEngine;
@@ -24,6 +25,9 @@ public class LineDrawer : MonoBehaviour
     public MeshFilter mf;
     public MeshRenderer mr;
     public bool saveAsset;
+    public bool trigger;
+    Material mat;
+    public float phaseLength = 1;
     // Start is called before the first frame update
     void Start()
     {
@@ -33,11 +37,13 @@ public class LineDrawer : MonoBehaviour
         triangles = new List<int>();
         normals = new List<Vector3>();
         uvs = new List<Vector2>();
+        mat = mr.material;
     }
 
     // Update is called once per frame
     void Update()
     {
+
         if (Input.GetMouseButtonDown(0))
         {
             if (selection)
@@ -189,6 +195,18 @@ public class LineDrawer : MonoBehaviour
                     }
                 }*/
             }
+        }
+
+
+        if (trigger)
+        {
+            float time = Time.timeSinceLevelLoad;
+            float period = phaseLength;
+            float angularVelocity = 2 * Mathf.PI / period;
+            mat.SetFloat("speed", angularVelocity);
+            mat.SetFloat("offsetTime", time);
+            mat.SetFloat("maxTime", time + period/2);
+            trigger = false;
         }
     }
     //Returns points and normals of ring points
