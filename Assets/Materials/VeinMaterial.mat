@@ -41,6 +41,7 @@ Material:
     - Vector1_4993F132: 3.16
     - Vector1_5EDE1230: 2.98
     - Vector1_75032C31: 22
+    - Vector1_8B466746: 0.56
     - Vector1_B2CC154D: 0.27
     - Vector1_E69922C: 2.73
     - _BlendOp: 0
@@ -67,12 +68,13 @@ Material:
     - _SrcBlend: 1
     - _ZWrite: 1
     - active: 1
-    - bulgeSize: 1
+    - bulgeSize: 0.25
     - maxTime: 0
     - offsetTime: 0
     - speed: 0
     - windowSize: 1
     m_Colors:
+    - Color_8A87E22A: {r: 0, g: 0.96689266, b: 1, a: 0.15686275}
     - _CameraFadeParams: {r: 0, g: 0, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}

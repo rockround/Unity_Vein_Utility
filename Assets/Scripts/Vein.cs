@@ -11,6 +11,7 @@ public class Vein : MonoBehaviour
     public delegate void onTriggered(float lag);
     public event onTriggered onTrigger;
     Material mat;
+    public Vector3 start, end, startNorm, endNorm;
     // Start is called before the first frame update
     void Start()
     {
@@ -35,9 +36,13 @@ public class Vein : MonoBehaviour
             trigger = false;
         }
     }
-    public void SetMesh(Mesh m)
+    public void SetMesh(Mesh m, Vector3 start, Vector3 end, Vector3 startN, Vector3 endN)
     {
         mf.mesh = Instantiate(m);
+        this.start = start;
+        this.end = end;
+        startNorm = startN;
+        endNorm = endN;
     }
     public IEnumerator eventTrigger(float lag)
     {

@@ -5,11 +5,12 @@ using UnityEngine;
 public class Branch : MonoBehaviour
 {
     public Vein parent;
-    public Vein[] veins;
+    public List<Vein> veins;
 
     // Start is called before the first frame update
     void Start()
     {
+        veins = new List<Vein>();
         parent.onTrigger += triggerOthers;
 
     }

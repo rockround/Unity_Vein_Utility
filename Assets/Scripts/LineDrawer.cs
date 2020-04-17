@@ -23,8 +23,15 @@ public class LineDrawer : MonoBehaviour
     Mesh currentMesh;
     public Material templateMaterial;
     public bool saveAsset;
-    public bool trigger;
+    public BranchMode mode = BranchMode.lastSurface;
     public GameObject veinObject;
+    GameObject newObject;
+    Vein newVein;
+
+    public enum BranchMode
+    {
+        lastSurface, newSurface
+    }
     // Start is called before the first frame update
     void Start()
     {
@@ -52,9 +59,36 @@ public class LineDrawer : MonoBehaviour
                 numPoints += 1;
                 if (numPoints == 1)
                 {
-                    start = hit.point;
-                    print("Start direction: " + hit.normal);
-                    startNorm = hit.normal;
+                    lr.positionCount = 0;
+                    newObject = Instantiate(veinObject);
+                    newVein = newObject.GetComponent<Vein>();
+                    if (hit.transform.name == "endNode")
+                    {
+                        Branch b = hit.transform.GetComponentInParent<Branch>();
+                        Vein root = b.parent;
+                        switch (mode)
+                        {
+                            case BranchMode.lastSurface:
+                                {
+                                    start = root.end;
+                                    startNorm = -root.endNorm;
+                                    break;
+                                }
+                            case BranchMode.newSurface:
+                                {
+                                    start = hit.point;
+                                    startNorm = hit.normal;
+                                    break;
+                                }
+                        }
+                        b.veins.Add(newVein);
+                    }
+                    else
+                    {
+                        start = hit.point;
+                        print("Start direction: " + hit.normal);
+                        startNorm = hit.normal;
+                    }
 
 
                 }
@@ -135,8 +169,8 @@ public class LineDrawer : MonoBehaviour
                     currentMesh.SetColors(colors);
                     currentMesh.UploadMeshData(true);
 
-                    GameObject newVein = Instantiate(veinObject);
-                    newVein.GetComponent<Vein>().SetMesh(currentMesh);
+                    newObject.transform.GetChild(0).position = end;
+                    newVein.SetMesh(currentMesh,start,end,startNorm,endNorm);
 
                     if (saveAsset)
                     {
@@ -147,7 +181,7 @@ public class LineDrawer : MonoBehaviour
                     //ringNorms.Clear();
                     uvs.Clear();
                     normals.Clear();
-                    lr.positionCount = 0;
+ 
                     positions.Clear();
                     triangles.Clear();
                     numPoints = 0;
