@@ -17,22 +17,25 @@ public class Vein : MonoBehaviour
     {
         mat = mr.material;
     }
-
+    internal void forceTrigger()
+    {
+        float time = Time.timeSinceLevelLoad;
+        float period = phaseLength;
+        float angularVelocity = 2 * Mathf.PI / period;
+        float frameSize = Mathf.PI / (period + 2);
+        mat.SetFloat("windowSize", frameSize);
+        mat.SetFloat("speed", angularVelocity);
+        mat.SetFloat("offsetTime", time);
+        mat.SetFloat("maxTime", time + period / 2);
+        StartCoroutine(eventTrigger(period / 2));
+    }
     // Update is called once per frame
     void Update()
     {
 
         if (trigger)
         {
-            float time = Time.timeSinceLevelLoad;
-            float period = phaseLength;
-            float angularVelocity = 2 * Mathf.PI / period;
-            float frameSize = Mathf.PI / (period + 2);
-            mat.SetFloat("windowSize", frameSize);
-            mat.SetFloat("speed", angularVelocity);
-            mat.SetFloat("offsetTime", time);
-            mat.SetFloat("maxTime", time + period / 2);
-            StartCoroutine(eventTrigger(period / 2));
+            forceTrigger();
             trigger = false;
         }
     }

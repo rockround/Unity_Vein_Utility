@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using TMPro;
 using UnityEditor;
 using UnityEditor.VersionControl;
 using UnityEngine;
@@ -14,8 +15,7 @@ public class LineDrawer : MonoBehaviour
     public int ringVertices = 6;
     int numPoints = 0;
     Vector3 start, startNorm, end, endNorm;
-    //List<List<Vector3>> ringPoss;
-    //List<List<Vector3>> ringNorms;
+
     List<Vector3> positions;
     List<Vector3> normals;
     List<int> triangles;
@@ -27,6 +27,12 @@ public class LineDrawer : MonoBehaviour
     public GameObject veinObject;
     GameObject newObject;
     Vein newVein;
+    CurrentState state;
+    public enum CurrentState { 
+        inBound,
+        outBound
+    }
+
 
     public enum BranchMode
     {
@@ -35,8 +41,7 @@ public class LineDrawer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        //ringPoss = new List<List<Vector3>>();
-        //ringNorms = new List<List<Vector3>>();
+
         positions = new List<Vector3>();
         triangles = new List<int>();
         normals = new List<Vector3>();
@@ -81,8 +86,8 @@ public class LineDrawer : MonoBehaviour
                                     break;
                                 }
                         }
-                        b.veins.Add(newVein);
-                    }
+                        b.children.Add(newVein);
+                    }                   
                     else
                     {
                         start = hit.point;
@@ -115,8 +120,7 @@ public class LineDrawer : MonoBehaviour
                     {
                         lr.positionCount += 1;
                         Tuple<List<Vector3>, List<Vector3>> pointSet = generateRing(ringVertices, radius, directions[i], points[i]);
-                        //ringPoss.Add(pointSet.Item1);
-                        //ringNorms.Add(pointSet.Item2);
+
 
                         positions.AddRange(pointSet.Item1);
                         normals.AddRange(pointSet.Item2);
@@ -177,15 +181,14 @@ public class LineDrawer : MonoBehaviour
                         AssetDatabase.CreateAsset(currentMesh, @"Assets\Prefabs\mesh.asset");
                         AssetDatabase.SaveAssets();
                     }
-                    //ringPoss.Clear();
-                    //ringNorms.Clear();
+
                     uvs.Clear();
                     normals.Clear();
  
                     positions.Clear();
                     triangles.Clear();
                     numPoints = 0;
-
+                    state = CurrentState.inBound;
                 }
             }
 
@@ -204,23 +207,7 @@ public class LineDrawer : MonoBehaviour
                 Debug.DrawLine(v2, v3, Color.red);
                 Debug.DrawLine(v3, v1, Color.red);
             }
-            //Just in case... may not need this
-            /*if (ringPoss.Count > 0 && ringNorms.Count > 0)
-            {
-                //per ring
-                for (int j = 0; j < ringPoss.Count; j++)
-                {
-                    //per vertex per ring
-                    for (int i = 0; i < ringVertices; i++)
-                    {
-                        int idx1 = i;
-                        int idx2 = (i + 1) % ringVertices;
 
-                        Debug.DrawLine(ringPoss[j][idx1], ringPoss[j][idx2], Color.red);
-                        Debug.DrawLine(ringPoss[j][idx1], ringPoss[j][idx1] + ringNorms[j][idx1], Color.blue);
-                    }
-                }
-            }*/
 
         }
 
@@ -252,7 +239,6 @@ public class LineDrawer : MonoBehaviour
         List<Vector3> directions = new List<Vector3>();
         Vector3 prevPoint = Vector3.zero;
         int iterations = Mathf.RoundToInt(1f / granularity);
-        //directions.Add(startNorm);
         for (int i = 0; i <= iterations; i++)
         {
             float t = i * granularity;
@@ -260,14 +246,9 @@ public class LineDrawer : MonoBehaviour
             Vector3 direction = (6 * t * t - 6 * t) * start + (3 * t * t - 4 * t + 1) * startNorm + (-6 * t * t + 6 * t) * end + (3 * t * t - 2 * t) * endNorm;
             points.Add(point);
             directions.Add(direction);
-            /*if (t > 0)
-            {
-                directions.Add((point - prevPoint).normalized);
-            }
-            prevPoint = point;*/
+
         }
-        //directions.RemoveAt(points.Count - 1);
-        //directions.Add(endNorm);
+
         return new Tuple<List<Vector3>, List<Vector3>>(points, directions);
     }
 }
