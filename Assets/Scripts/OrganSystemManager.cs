@@ -4,6 +4,8 @@ using UnityEngine;
 using System.Threading.Tasks;
 using System.Threading;
 using UnityEngine.UI;
+using Unity.Collections;
+using Unity.Jobs;
 
 public class OrganSystemManager : MonoBehaviour
 {
@@ -23,11 +25,27 @@ public class OrganSystemManager : MonoBehaviour
     float fatBreakdown = 1;
     float baseBps = 1;
     float homeostasis = 1;
-    public Slider[] cores, powers, temps, charges;
+    public Slider[] coreSliders, powerSliders, tempSliders, chargeSliders;
     public Button PauseButton, PlayButton;
     public InputField DrainRate, MaxCharge, FatBreakdown, FatGrowth, Homeostasis, BaseBps, BetaRate, MaxBoostCount, MaxM, StartHealth, Metabolism, PowerConsumption, SimRate;
     public Text HeartRate;
     public Slider SimRateSlider;
+    NativeArray<float> coreMs;
+    NativeArray<float> currentPowers;
+    NativeArray<float> dynamicMs;
+    NativeArray<float> temperatures;
+    NativeArray<float> charges;
+    NativeArray<float> otherData;
+    int totalOrgans = 7;
+    public void Awake()
+    {
+        coreMs = new NativeArray<float>(7, Allocator.Persistent);
+        currentPowers = new NativeArray<float>(7, Allocator.Persistent);
+       dynamicMs = new NativeArray<float>(7, Allocator.Persistent);
+        temperatures = new NativeArray<float>(7, Allocator.Persistent);
+        charges = new NativeArray<float>(3, Allocator.Persistent);
+        otherData = new NativeArray<float>(1, Allocator.Persistent);
+    }
     public void Start()
     {
         //create and start a new thread in the load event.
@@ -39,27 +57,27 @@ public class OrganSystemManager : MonoBehaviour
     }
     void updateStats()
     {
-        HeartRate.text = s.curBps + "";
-        for (int i = 0; i < s.organs.Length; i++)
+        HeartRate.text = otherData[0] + "";
+        for (int i = 0; i <totalOrgans; i++)
         {
-            if (s.organs[i].coreM + s.organs[i].dynamicM > 0)
+            if (coreMs[i] + dynamicMs[i]> 0)
             {
-                cores[i].value = (int)(100 * s.organs[i].coreM / s.organs[i].startHealth);
-                powers[i].value = (int)(100 * s.organs[i].currentPower);
-                temps[i].value = Mathf.Min(100, (int)(s.organs[i].getTemperature()));
+                coreSliders[i].value = (int)(100 * coreMs[i] / startHealths[i]);
+                powerSliders[i].value = (int)(100 * currentPowers[i]);
+                tempSliders[i].value = Mathf.Min(100, (int)(temperatures[i]));
                 if (i <= Organ.lastChargeableOrgan)
                 {
-                    charges[i].value = (int)(100 * ((ChargeableOrgan)s.organs[i]).charge / ((ChargeableOrgan)s.organs[i]).maxCharge);
+                    chargeSliders[i].value = (int)(100 * charges[i] /maxCharges[i]);
                 }
             }
             else
             {
-                cores[i].value = 0;
-                powers[i].value = 0;
-                temps[i].value = 0;
+                coreSliders[i].value = 0;
+                powerSliders[i].value = 0;
+                tempSliders[i].value = 0;
                 if (i <= Organ.lastChargeableOrgan)
                 {
-                    charges[i].value = 0;
+                    chargeSliders[i].value = 0;
                 }
 
             }
@@ -68,7 +86,12 @@ public class OrganSystemManager : MonoBehaviour
 
 
     }
-    public IEnumerator mainLoop(float simRate)
+    void Update()
+    {
+        if(t!=null)
+        updateStats();
+    }
+    public void mainLoop(float simRate)
     {
         //you need to use Invoke because the new thread can't access the UI elements directly
         s = new Structure(startHealths, metabolisms, powerConsumptions, maxMs, maxCharges, maxBoostCount, betaRate, drainRate, fatGrowth, fatBreakdown, baseBps, homeostasis);
@@ -77,20 +100,45 @@ public class OrganSystemManager : MonoBehaviour
         {
             while (pause)
             {
-                //Thread.Sleep(50);
-                yield return new WaitForSecondsRealtime(.05f);
+                Thread.Sleep(50);
+                //yield return new WaitForSecondsRealtime(.05f);
             }
-            print(s.coreM + " " + s.dynamicM);
+            //print(s.coreM + " " + s.dynamicM);
+            otherData[0] = s.curBps;
+
+            for (int i=0; i< 7; i++)
+            {
+                coreMs[i] = s.organs[i].coreM;
+                dynamicMs[i] = s.organs[i].dynamicM;
+                currentPowers[i] = s.organs[i].currentPower;
+                temperatures[i] = s.organs[i].getTemperature();
+                if (i <= Organ.lastChargeableOrgan)
+                {
+                    charges[i] = ((ChargeableOrgan)s.organs[i]).charge;
+
+                }
+            }
             if (stop)
                 break;
+
           
-            Invoke("updateStats",0);
-            yield return new WaitForSecondsRealtime(number / simRate);
-            //Thread.Sleep((int)(number * 1000 * 1 / simRate));
+           //Invoke("updateStats",0);
+           // yield return new WaitForSecondsRealtime(number / simRate);
+           Thread.Sleep((int)(number * 1000 * 1 / simRate));
 
             //To keep stuff from jamming up
         }
 
+    }
+    public void OnApplicationQuit()
+    {
+        coreMs.Dispose();
+        dynamicMs.Dispose();
+        temperatures.Dispose();
+        charges.Dispose();
+        currentPowers.Dispose();
+        otherData.Dispose();
+        t.Join();
     }
     public void killMainLoop()
     {
@@ -100,31 +148,31 @@ public class OrganSystemManager : MonoBehaviour
         PauseButton.enabled = PlayButton.enabled = false;
         for (int i = 0; i < 7; i++)
         {
-            cores[i].value = 0;
-            powers[i].value = 0;
-            temps[i].value = 0;
+            coreSliders[i].value = 0;
+            powerSliders[i].value = 0;
+            tempSliders[i].value = 0;
             if (i <= Organ.lastChargeableOrgan)
             {
-                charges[i].value = 0;
+                chargeSliders[i].value = 0;
             }
         }
     }
 
     public void startLoop()
     {
-        //if (t != null)
+        if (t != null)
         {
             pause = false;
             stop = true;
-            StopCoroutine("mainLoop");
-            //t.Join();
+            //StopCoroutine("mainLoop");
+            t.Join();
         }
         pause = false;
         stop = false;
 
-        //////////////////////////////t = new Thread(() => mainLoop((float)SimRate.value));
-        //t.Start();
-        StartCoroutine(mainLoop(SimRateSlider.value));
+        t = new Thread(() => mainLoop(SimRateSlider.value));
+        t.Start();
+        //StartCoroutine(mainLoop(SimRateSlider.value));
         PauseButton.enabled = true;
         PlayButton.enabled = false;
     }
