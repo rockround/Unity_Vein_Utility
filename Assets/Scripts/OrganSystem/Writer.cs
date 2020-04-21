@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections;
-using System.Numerics;
+using UnityEngine;
 using System;
 
 public class Writer : ChargeableOrgan
@@ -32,29 +32,29 @@ public class Writer : ChargeableOrgan
     }
     public override void absorb()
     {
-        float minM = Math.Min(metabolism, toProcessMTP.X);
-        Vector3 deltaMTP = Vector3.Zero;
+        float minM = Math.Min(metabolism, toProcessMTP.x);
+        Vector3 deltaMTP = Vector3.zero;
         float rawPsions = 0;
         float finalTemp;
         if (minM > 0)
         {
-            deltaMTP = minM / toProcessMTP.X * toProcessMTP;
-            rawPsions = deltaMTP.Z;
-            //tKe += deltaMTP.Y;
-            finalTemp = (tKe + deltaMTP.Y) / (coreM + dynamicM + deltaMTP.X);
+            deltaMTP = minM / toProcessMTP.x * toProcessMTP;
+            rawPsions = deltaMTP.z;
+            //tKe += deltaMTP.y;
+            finalTemp = (tKe + deltaMTP.y) / (coreM + dynamicM + deltaMTP.x);
 
             toProcessMTP -= deltaMTP;
-            deltaMTP = new Vector3(deltaMTP.X, 0, 0);
+            deltaMTP = new Vector3(deltaMTP.x, 0, 0);
 
-            float usedM = Math.Min(deltaMTP.X, startHealth - (coreM + dynamicM));//if health below normal, get minimum of health needed, available matter, and regeneration
+            float usedM = Math.Min(deltaMTP.x, startHealth - (coreM + dynamicM));//if health below normal, get minimum of health needed, available matter, and regeneration
             dynamicM += usedM;
-            Vector3 incorporated = deltaMTP * usedM / deltaMTP.X;
+            Vector3 incorporated = deltaMTP * usedM / deltaMTP.x;
             deltaMTP -= incorporated;
 
             tKe = finalTemp * (coreM + dynamicM);
 
             //this many phonons end up going back out after absorption
-            deltaMTP.Y = deltaMTP.X * finalTemp;
+            deltaMTP.y = deltaMTP.x * finalTemp;
         }
 
         if (usePsions)

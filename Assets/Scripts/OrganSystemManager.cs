@@ -36,15 +36,18 @@ public class OrganSystemManager : MonoBehaviour
     NativeArray<float> temperatures;
     NativeArray<float> charges;
     NativeArray<float> otherData;
+    NativeArray<Vector3> outMTPs;
     int totalOrgans = 7;
+    public OrganObject[] objects;
     public void Awake()
     {
         coreMs = new NativeArray<float>(7, Allocator.Persistent);
         currentPowers = new NativeArray<float>(7, Allocator.Persistent);
-       dynamicMs = new NativeArray<float>(7, Allocator.Persistent);
+        dynamicMs = new NativeArray<float>(7, Allocator.Persistent);
         temperatures = new NativeArray<float>(7, Allocator.Persistent);
         charges = new NativeArray<float>(3, Allocator.Persistent);
-        otherData = new NativeArray<float>(1, Allocator.Persistent);
+        otherData = new NativeArray<float>(2, Allocator.Persistent);
+        outMTPs = new NativeArray<Vector3>(7, Allocator.Persistent);
     }
     public void Start()
     {
@@ -58,16 +61,29 @@ public class OrganSystemManager : MonoBehaviour
     void updateStats()
     {
         HeartRate.text = otherData[0] + "";
-        for (int i = 0; i <totalOrgans; i++)
+        //set mtps
+        if(otherData[1] == .01f)
         {
-            if (coreMs[i] + dynamicMs[i]> 0)
+            for(int i=0; i< 7; i++)
+            {
+                objects[Organ.StructureI].outMTPs[i] = outMTPs[i];
+            }
+        }
+        for (int i = 0; i < totalOrgans; i++)
+        {
+            if (coreMs[i] + dynamicMs[i] > 0)
             {
                 coreSliders[i].value = (int)(100 * coreMs[i] / startHealths[i]);
                 powerSliders[i].value = (int)(100 * currentPowers[i]);
                 tempSliders[i].value = Mathf.Min(100, (int)(temperatures[i]));
                 if (i <= Organ.lastChargeableOrgan)
                 {
-                    chargeSliders[i].value = (int)(100 * charges[i] /maxCharges[i]);
+                    chargeSliders[i].value = (int)(100 * charges[i] / maxCharges[i]);
+                }
+                //if pulse done
+                if (otherData[1] == .01f)
+                {
+                    objects[i].fire();
                 }
             }
             else
@@ -88,8 +104,8 @@ public class OrganSystemManager : MonoBehaviour
     }
     void Update()
     {
-        if(t!=null)
-        updateStats();
+        if (t != null)
+            updateStats();
     }
     public void mainLoop(float simRate)
     {
@@ -106,12 +122,13 @@ public class OrganSystemManager : MonoBehaviour
             //print(s.coreM + " " + s.dynamicM);
             otherData[0] = s.curBps;
 
-            for (int i=0; i< 7; i++)
+            for (int i = 0; i < 7; i++)
             {
                 coreMs[i] = s.organs[i].coreM;
                 dynamicMs[i] = s.organs[i].dynamicM;
                 currentPowers[i] = s.organs[i].currentPower;
                 temperatures[i] = s.organs[i].getTemperature();
+                outMTPs[i] = s.organs[i].outMTP;
                 if (i <= Organ.lastChargeableOrgan)
                 {
                     charges[i] = ((ChargeableOrgan)s.organs[i]).charge;
@@ -121,10 +138,16 @@ public class OrganSystemManager : MonoBehaviour
             if (stop)
                 break;
 
-          
-           //Invoke("updateStats",0);
-           // yield return new WaitForSecondsRealtime(number / simRate);
-           Thread.Sleep((int)(number * 1000 * 1 / simRate));
+            //If was a blood pump cycle
+            //if (number < .05f)
+            //    otherData[1] = 1;
+            //Invoke("updateStats",0);
+            // yield return new WaitForSecondsRealtime(number / simRate);
+            Thread.Sleep((int)(number * 1000 * 1 / simRate));
+            otherData[1] = number;
+
+            //if (number < .05f)
+            //    otherData[1] = 0;
 
             //To keep stuff from jamming up
         }
@@ -138,7 +161,8 @@ public class OrganSystemManager : MonoBehaviour
         charges.Dispose();
         currentPowers.Dispose();
         otherData.Dispose();
-        t.Join();
+        outMTPs.Dispose();
+        t?.Join();
     }
     public void killMainLoop()
     {

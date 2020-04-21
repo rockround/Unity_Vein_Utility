@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections;
-using System.Numerics;
+using UnityEngine;
 using System;
 
 public class Structure : Organ
@@ -28,6 +28,9 @@ public class Structure : Organ
 
     //Calculated Static Values
     float sD, cD, bD, pD, mD, vD, wD, totalDemand;
+
+
+
 
     //Initializes organ system
     public Structure(float[] startHealths, float[] metabolisms, float[] powerConsumptions, float[] maxMs, float[] maxCharges, int maxBoostCount, float betaRate, float drainRate, float fatGrowth, float fatBreakdown, float baseBps, float homeostasis) : base(startHealths[StructureI], powerConsumptions[StructureI], metabolisms[StructureI], maxMs[StructureI])
@@ -65,53 +68,53 @@ public class Structure : Organ
     }
     public override void absorb()
     {
-        float minM = Math.Min(metabolism, toProcessMTP.X);
+        float minM = Math.Min(metabolism, toProcessMTP.x);
         //Console.WriteLine(minM);
-        Vector3 deltaMTP = Vector3.Zero;
+        Vector3 deltaMTP = Vector3.zero;
         float rawPsions = 0;
         float finalTemp = getTemperature();
         if (minM > 0)
         {
-            deltaMTP = (minM / toProcessMTP.X) * toProcessMTP;
-            rawPsions = deltaMTP.Z;
+            deltaMTP = (minM / toProcessMTP.x) * toProcessMTP;
+            rawPsions = deltaMTP.z;
 
 
             //Calculate total diffusion of blood and organ regardless of how much blood is used
-            finalTemp = (tKe + deltaMTP.Y) / (coreM + dynamicM + deltaMTP.X);
+            finalTemp = (tKe + deltaMTP.y) / (coreM + dynamicM + deltaMTP.x);
 
             toProcessMTP -= deltaMTP;
-            deltaMTP = new Vector3(deltaMTP.X, 0, 0);
+            deltaMTP = new Vector3(deltaMTP.x, 0, 0);
         }
 
 
 
-        //addPhonons(deltaMTP.Y);
+        //addPhonons(deltaMTP.y);
 
 
-        //Console.WriteLine(toProcessMTP + " " + deltaMTP.X);
+        //Console.WriteLine(toProcessMTP + " " + deltaMTP.x);
         //continuous starvation - healing -> body uses inM to heal itself, finds that it doesn't have enough for everyone else, gives part of itself to everyone. This oscillates until equilibrium
         //If blood flow will be low regardless of how much blood is currently here
-        if (Math.Round(toProcessMTP.X + outMTP.X + deltaMTP.X, 3) < totalDemand)//if blood flow is too low, add directly to output deposit from dynamicM
+        if (Math.Round(toProcessMTP.x + outMTP.x + deltaMTP.x, 3) < totalDemand)//if blood flow is too low, add directly to output deposit from dynamicM
         {
-            //Console.WriteLine("LESS THAN ENOUGH BY " + (totalDemand - Math.Round(toProcessMTP.X + outMTP.X + deltaMTP.X, 3)));
+            //Console.WriteLine("LESS THAN ENOUGH BY " + (totalDemand - Math.Round(toProcessMTP.x + outMTP.x + deltaMTP.x, 3)));
             //TODO: Do I need this?
-            //  if (deltaMTP.X == 0)//if toProcessM is depleted but the stuff in outM isn't enough -> deltaM would be zero. If this isn't here, even if there is stuff ready to process, it will detect a defecit.  DO I NEED THIS?
+            //  if (deltaMTP.x == 0)//if toProcessM is depleted but the stuff in outM isn't enough -> deltaM would be zero. If this isn't here, even if there is stuff ready to process, it will detect a defecit.  DO I NEED THIS?
             {
 
                 //print(totalDemand - (outM + toProcessM + deltaM) + " " + deltaM);
-                float delta = Math.Min(totalDemand - (outMTP.X + toProcessMTP.X + deltaMTP.X), metabolism);//get minimum of deficit and what can be offered via metabolism
+                float delta = Math.Min(totalDemand - (outMTP.x + toProcessMTP.x + deltaMTP.x), metabolism);//get minimum of deficit and what can be offered via metabolism
 
                 if (dynamicM > delta)//if enough dynamic, pull from dynamic
                 {
                     dynamicM -= delta;
-                    deltaMTP.X += delta;
+                    deltaMTP.x += delta;
                 }
                 else
                 {
 
                     if (coreM + dynamicM > delta)//starve
                     {
-                        deltaMTP.X += delta;
+                        deltaMTP.x += delta;
                         float deltaHealth = delta - dynamicM;
                         psionLevel += crystalPsion * deltaHealth / coreM; //add to body psions from crystal proportional to percent of matter lost
                         crystalPsion *= 1 - deltaHealth / coreM;// subtract percent of psions lost due to matter loss
@@ -129,8 +132,8 @@ public class Structure : Organ
         }
         else//care about self after caring for other organs
         {
-            //if (deltaMTP.X > 0)//if I have more than enough health left
-            //    print(deltaMTP.X);
+            //if (deltaMTP.x > 0)//if I have more than enough health left
+            //    print(deltaMTP.x);
             //Seems like using this area of code destroys things
             //print(startHealth - (coreM + dynamicM));
             if (coreM + dynamicM > startHealth)//if more than enough total health, get fat using matter from deltaM.
@@ -145,7 +148,7 @@ public class Structure : Organ
                 //    print("THIS SHOULDN't BE HAPPENING!");
 
                 dynamicM -= delta;
-                //Vector3 incorporated = deltaMTP * delta / deltaMTP.X;
+                //Vector3 incorporated = deltaMTP * delta / deltaMTP.x;
                 //deltaMTP -= incorporated;
 
                 // }
@@ -159,29 +162,29 @@ public class Structure : Organ
             }
         }
 
-        //print(toProcessMTP.Z + outMTP.Z + " " + (outMTP.X + deltaMTP.X + toProcessMTP.X) + " rawpsions " + rawPsions);
+        //print(toProcessMTP.z + outMTP.z + " " + (outMTP.x + deltaMTP.x + toProcessMTP.x) + " rawpsions " + rawPsions);
         ///Psions are like fat -> fat doesn't go directly to any one place in the body on command, but when sugar levels are low fat is put there. There is a baseline sugar concentration expected.
 
-        if (Math.Round(toProcessMTP.Z + outMTP.Z, 3) < psionBloodHomeostasis * (outMTP.X + deltaMTP.X + toProcessMTP.X))//Is current concentration acceptable?
+        if (Math.Round(toProcessMTP.z + outMTP.z, 3) < psionBloodHomeostasis * (outMTP.x + deltaMTP.x + toProcessMTP.x))//Is current concentration acceptable?
         {//too low
          //print("TOO LOW " + rawPsions);
-            float delta = psionBloodHomeostasis * (outMTP.X + deltaMTP.X + toProcessMTP.X) - (toProcessMTP.Z + outMTP.Z);
+            float delta = psionBloodHomeostasis * (outMTP.x + deltaMTP.x + toProcessMTP.x) - (toProcessMTP.z + outMTP.z);
             if (delta > rawPsions)
             {
                 if (psionLevel + rawPsions > delta)
                 {
                     psionLevel -= delta - rawPsions;
-                    outMTP.Z += delta;
+                    outMTP.z += delta;
                 }
                 else if (psionLevel + crystalPsion + rawPsions > delta)
                 {
                     crystalPsion -= delta - rawPsions - psionLevel;
                     psionLevel = 0;
-                    outMTP.Z += delta;
+                    outMTP.z += delta;
                 }
                 else
                 {
-                    outMTP.Z += crystalPsion + psionLevel + rawPsions;
+                    outMTP.z += crystalPsion + psionLevel + rawPsions;
                     crystalPsion = 0;
                     psionLevel = 0;
                 }
@@ -189,7 +192,7 @@ public class Structure : Organ
             }
             else
             {
-                outMTP.Z += delta;
+                outMTP.z += delta;
                 rawPsions -= delta;
                 crystalPsion += rawPsions;
             }
@@ -219,13 +222,13 @@ public class Structure : Organ
         }
 
 
-        //Console.WriteLine("LESS THAN ENOUGH BY " + (totalDemand - Math.Round(toProcessMTP.X + outMTP.X + deltaMTP.X, 3)));
+        //Console.WriteLine("LESS THAN ENOUGH BY " + (totalDemand - Math.Round(toProcessMTP.x + outMTP.x + deltaMTP.x, 3)));
         //Console.WriteLine(deltaMTP);
 
 
         tKe = finalTemp * (coreM + dynamicM);
         //this many phonons end up going back out after absorption
-        deltaMTP.Y = deltaMTP.X * finalTemp;
+        deltaMTP.y = deltaMTP.x * finalTemp;
 
 
         outMTP += deltaMTP;
@@ -311,8 +314,8 @@ public class Structure : Organ
 
         //reason to not have psionDemand: Since distribution is already happening via matter diffusion on matter mtp exchange, it is unnecessary and also unnatural. This would give double edged blade effect for increasing blood flow
 
-        //float phononsReleased = getTemperature() * outMTP.X;
-        float psionsReleased = psionLevel / coreM * outMTP.X;
+        //float phononsReleased = getTemperature() * outMTP.x;
+        float psionsReleased = psionLevel / coreM * outMTP.x;
         //addPhonons(-phononsReleased);
         psionLevel -= psionsReleased;
         //print(psionsReleased);

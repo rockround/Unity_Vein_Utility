@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections;
-using System.Numerics;
+using UnityEngine;
 using System;
 
 public class Organ
@@ -40,7 +40,7 @@ public class Organ
     public virtual void flowIn()
     {
         toProcessMTP = inMTP;
-        outMTP = inMTP = Vector3.Zero;
+        outMTP = inMTP = Vector3.zero;
     }
     public virtual void flowOut()
     {
@@ -52,11 +52,11 @@ public class Organ
 
         /*if (coreM + dynamicM > 0)
         {
-            phononsReleased = getTemperature() * netMTP.X;
+            phononsReleased = getTemperature() * netMTP.x;
         }*/
         if (coreM > 0)
         {
-            psionsReleased = psionLevel / coreM * netMTP.X;
+            psionsReleased = psionLevel / coreM * netMTP.x;
         }
 
         //Handled in matter absorption step
@@ -69,28 +69,28 @@ public class Organ
 
         parent.inMTP += netMTP + remainingToFlow;
 
-        parent.stomachM += outMTP.X - netMTP.X + toProcessMTP.X - remainingToFlow.X;     //health inefficiencies leak into stomach
-        parent.psionLevel += outMTP.Z - netMTP.Z + toProcessMTP.Z - remainingToFlow.Z;
-        parent.addPhonons(outMTP.Y - netMTP.Y + toProcessMTP.Y - remainingToFlow.Y);
+        parent.stomachM += outMTP.x - netMTP.x + toProcessMTP.x - remainingToFlow.x;     //health inefficiencies leak into stomach
+        parent.psionLevel += outMTP.z - netMTP.z + toProcessMTP.z - remainingToFlow.z;
+        parent.addPhonons(outMTP.y - netMTP.y + toProcessMTP.y - remainingToFlow.y);
     }
     public virtual void absorb()
     {
-        float minM = Math.Min(metabolism, toProcessMTP.X);
-        Vector3 deltaMTP = Vector3.Zero;
+        float minM = Math.Min(metabolism, toProcessMTP.x);
+        Vector3 deltaMTP = Vector3.zero;
         if (minM > 0)
         {
 
-            deltaMTP = minM / toProcessMTP.X * toProcessMTP;
+            deltaMTP = minM / toProcessMTP.x * toProcessMTP;
             //Psions distribute by mass evenly (Like charge)
-            psionLevel += deltaMTP.Z;
+            psionLevel += deltaMTP.z;
 
             //Calculate total diffusion of blood and organ regardless of how much blood is used
-            float finalTemp = (tKe + deltaMTP.Y) / (coreM + dynamicM + deltaMTP.X);
+            float finalTemp = (tKe + deltaMTP.y) / (coreM + dynamicM + deltaMTP.x);
 
             toProcessMTP -= deltaMTP;
-            deltaMTP = new Vector3(deltaMTP.X, 0, 0);
+            deltaMTP = new Vector3(deltaMTP.x, 0, 0);
 
-            float availableM = deltaMTP.X;
+            float availableM = deltaMTP.x;
             float usedM = Math.Min(availableM, startHealth - (coreM + dynamicM));//if health below normal, get minimum of health needed, available matter, and regeneration
             dynamicM += usedM;
             tKe = finalTemp * (coreM + dynamicM);
@@ -98,7 +98,7 @@ public class Organ
             Vector3 incorporated = deltaMTP * usedM / availableM;
             deltaMTP -= incorporated;
             //this many phonons end up going back out after absorption
-            deltaMTP.Y = deltaMTP.X * finalTemp;
+            deltaMTP.y = deltaMTP.x * finalTemp;
 
         }
 

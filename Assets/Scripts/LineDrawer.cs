@@ -22,16 +22,11 @@ public class LineDrawer : MonoBehaviour
     List<Vector2> uvs;
     Mesh currentMesh;
     public Material templateMaterial;
-    public bool saveAsset;
     public BranchMode mode = BranchMode.lastSurface;
     public GameObject veinObject;
     GameObject newObject;
     Vein newVein;
-    CurrentState state;
-    public enum CurrentState { 
-        inBound,
-        outBound
-    }
+    OrganObject source, destination;
 
 
     public enum BranchMode
@@ -65,7 +60,7 @@ public class LineDrawer : MonoBehaviour
                 if (numPoints == 1)
                 {
                     lr.positionCount = 0;
-                    newObject = Instantiate(veinObject);
+                    newObject = Instantiate(veinObject,hit.transform.root,true);
                     newVein = newObject.GetComponent<Vein>();
                     if (hit.transform.name == "endNode")
                     {
@@ -93,9 +88,10 @@ public class LineDrawer : MonoBehaviour
                         start = hit.point;
                         print("Start direction: " + hit.normal);
                         startNorm = hit.normal;
+                        //source = hit.transform.GetComponent<OrganObject>();
+
                     }
-
-
+                    newVein.from = hit.transform.gameObject;
                 }
                 else if (numPoints == 2)
                 {
@@ -175,12 +171,9 @@ public class LineDrawer : MonoBehaviour
 
                     newObject.transform.GetChild(0).position = end;
                     newVein.SetMesh(currentMesh,start,end,startNorm,endNorm);
-
-                    if (saveAsset)
-                    {
-                        AssetDatabase.CreateAsset(currentMesh, @"Assets\Prefabs\mesh.asset");
-                        AssetDatabase.SaveAssets();
-                    }
+                    newVein.to = hit.transform.gameObject;
+                    newObject.name = newVein.from.name + "_" + newVein.to.name;
+  
 
                     uvs.Clear();
                     normals.Clear();
@@ -188,7 +181,16 @@ public class LineDrawer : MonoBehaviour
                     positions.Clear();
                     triangles.Clear();
                     numPoints = 0;
-                    state = CurrentState.inBound;
+                    /*destination = hit.transform.GetComponent<OrganObject>();
+                    if(destination != null && source != null)
+                    {
+                        source.outBound[(int)destination.organType] = newVein;
+                    }*/
+                    //OrganObject o = hit.transform.GetComponent<OrganObject>();
+                    //if (o != null)
+                    //{
+                    //    o.inBound[(int)o.organType] = newVein;
+                    //}
                 }
             }
 

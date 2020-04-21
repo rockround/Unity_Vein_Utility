@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections;
-using System.Numerics;
+using UnityEngine;
 using System;
 
 public class Beta : Organ
@@ -17,33 +17,33 @@ public class Beta : Organ
     }
     public override void absorb()
     {
-        float minM = Math.Min(metabolism, toProcessMTP.X);
-        Vector3 deltaMTP = Vector3.Zero;
+        float minM = Math.Min(metabolism, toProcessMTP.x);
+        Vector3 deltaMTP = Vector3.zero;
         float finalTemp = getTemperature();
         if (minM > 0)
         {
-            deltaMTP = minM / toProcessMTP.X * toProcessMTP;
-            psionLevel += deltaMTP.Z;
-            finalTemp = (tKe + deltaMTP.Y) / (coreM + dynamicM + deltaMTP.X);
+            deltaMTP = minM / toProcessMTP.x * toProcessMTP;
+            psionLevel += deltaMTP.z;
+            finalTemp = (tKe + deltaMTP.y) / (coreM + dynamicM + deltaMTP.x);
 
-            //tKe += deltaMTP.Y;
+            //tKe += deltaMTP.y;
             toProcessMTP -= deltaMTP;
-            deltaMTP = new Vector3(deltaMTP.X, 0, 0);
+            deltaMTP = new Vector3(deltaMTP.x, 0, 0);
         }
         //TODO: Make this based on separate beta level resource
         bruise(0, startHealth * contaminationRate);//damaged with contamination (at end because this is covered up by inM in flowing
 
         if (minM > 0)
         {
-            float usedM = Math.Min(deltaMTP.X, startHealth - (coreM + dynamicM));//if health below normal, get minimum of health needed, available matter, and regeneration
+            float usedM = Math.Min(deltaMTP.x, startHealth - (coreM + dynamicM));//if health below normal, get minimum of health needed, available matter, and regeneration
             dynamicM += usedM;
-            Vector3 incorporated = deltaMTP * usedM / deltaMTP.X;
+            Vector3 incorporated = deltaMTP * usedM / deltaMTP.x;
             deltaMTP -= incorporated;
 
             tKe = finalTemp * (coreM + dynamicM);
 
             //this many phonons end up going back out after absorption
-            deltaMTP.Y = deltaMTP.X * finalTemp;
+            deltaMTP.y = deltaMTP.x * finalTemp;
         }
         healthiness = (dynamicM + coreM) / startHealth;
 

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections;
-using System.Numerics;
+using UnityEngine;
 using System;
 
 public class Pump : Organ
@@ -16,29 +16,29 @@ public class Pump : Organ
 
     public override void absorb()
     {
-        float minM = Math.Min(metabolism, toProcessMTP.X);
-        Vector3 deltaMTP = Vector3.Zero;
+        float minM = Math.Min(metabolism, toProcessMTP.x);
+        Vector3 deltaMTP = Vector3.zero;
         float finalTemp = getTemperature();
         if (minM > 0)
         {
 
-            deltaMTP = minM / toProcessMTP.X * toProcessMTP;
-            psionLevel += deltaMTP.Z;
-            //tKe += deltaMTP.Y;
-            finalTemp = (tKe + deltaMTP.Y) / (coreM + dynamicM + deltaMTP.X);
+            deltaMTP = minM / toProcessMTP.x * toProcessMTP;
+            psionLevel += deltaMTP.z;
+            //tKe += deltaMTP.y;
+            finalTemp = (tKe + deltaMTP.y) / (coreM + dynamicM + deltaMTP.x);
 
             toProcessMTP -= deltaMTP;
-            deltaMTP = new Vector3(deltaMTP.X, 0, 0);
+            deltaMTP = new Vector3(deltaMTP.x, 0, 0);
             //now look to get more health maybe
-            float usedM = Math.Min(Math.Min(deltaMTP.X, startHealth - (coreM + dynamicM)), 0);//if health below normal, get minimum of health needed, available matter, and regeneration
+            float usedM = Math.Min(Math.Min(deltaMTP.x, startHealth - (coreM + dynamicM)), 0);//if health below normal, get minimum of health needed, available matter, and regeneration
             dynamicM += usedM;
-            Vector3 incorporated = deltaMTP * usedM / deltaMTP.X;
+            Vector3 incorporated = deltaMTP * usedM / deltaMTP.x;
             deltaMTP -= incorporated;
 
             tKe = finalTemp * (coreM + dynamicM);
 
             //this many phonons end up going back out after absorption
-            deltaMTP.Y = deltaMTP.X * finalTemp;
+            deltaMTP.y = deltaMTP.x * finalTemp;
 
         }
         healthiness = (dynamicM + coreM) / startHealth;
@@ -50,7 +50,7 @@ public class Pump : Organ
 
         //psion pump unique, splits how much toCvt is sent to output, how much is leaked into organ psion level
         float realP = toCvt * EnergyManager.psionPerKg;
-        outMTP.Z += realP * healthiness;
+        outMTP.z += realP * healthiness;
         psionLevel += realP * (1 - healthiness);
 
         outMTP += deltaMTP;

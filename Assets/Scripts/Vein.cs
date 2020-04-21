@@ -12,6 +12,7 @@ public class Vein : MonoBehaviour
     public event onTriggered onTrigger;
     Material mat;
     public Vector3 start, end, startNorm, endNorm;
+    public GameObject from, to;
     // Start is called before the first frame update
     void Start()
     {
@@ -27,6 +28,19 @@ public class Vein : MonoBehaviour
         mat.SetFloat("speed", angularVelocity);
         mat.SetFloat("offsetTime", time);
         mat.SetFloat("maxTime", time + period / 2);
+        StartCoroutine(eventTrigger(period / 2));
+    }
+    internal void forceTrigger(float amount)
+    {
+        float time = Time.timeSinceLevelLoad;
+        float period = phaseLength;
+        float angularVelocity = 2 * Mathf.PI / period;
+        float frameSize = Mathf.PI / (period + 2);
+        mat.SetFloat("windowSize", frameSize);
+        mat.SetFloat("speed", angularVelocity);
+        mat.SetFloat("offsetTime", time);
+        mat.SetFloat("maxTime", time + period / 2);
+        mat.SetFloat("bulgeSize", amount);
         StartCoroutine(eventTrigger(period / 2));
     }
     // Update is called once per frame
