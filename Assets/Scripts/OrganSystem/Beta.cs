@@ -11,6 +11,7 @@ public class Beta : Organ
     public Beta(float startHealth, float powerConsumption, float metabolism, float maxM, float betaRate) : base(startHealth, powerConsumption, metabolism, maxM)
     {
         this.betaRate = betaRate;
+        OrganIndex = 4;
     }
     public override void continuousIn()
     {

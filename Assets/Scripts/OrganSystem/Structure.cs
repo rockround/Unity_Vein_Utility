@@ -2,6 +2,8 @@
 using System.Collections;
 using UnityEngine;
 using System;
+using Unity.Collections;
+using UnityEngine.Experimental.AI;
 
 public class Structure : Organ
 {
@@ -27,8 +29,9 @@ public class Structure : Organ
     bool stabilized;
 
     //Calculated Static Values
-    float sD, cD, bD, pD, mD, vD, wD, totalDemand;
-
+    float totalDemand;
+    float[] demands;
+    internal NativeHashMap<Vector2Int, Vector3> mtps;
 
 
 
@@ -44,6 +47,7 @@ public class Structure : Organ
         v = new Vision(startHealths[VisionI], powerConsumptions[VisionI], metabolisms[VisionI], maxMs[VisionI]);
 
         organs = new Organ[] { w, c, m, this, b, p, v };
+        demands = new float[7];
         c.parent = w.parent = m.parent = b.parent = p.parent = v.parent = parent = this;
 
         c.p = p;
@@ -56,6 +60,7 @@ public class Structure : Organ
         this.fatGrowth = fatGrowth;
         this.baseBps = baseBps;
         this.psionBloodHomeostasis = homeostasis;
+        OrganIndex = 3;
     }
 
     //Actually starts it
@@ -240,13 +245,10 @@ public class Structure : Organ
     public void initPipeDemands()
     {
         totalDemand = c.maxM + b.maxM + p.maxM + m.maxM + v.maxM + w.maxM + maxM;
-        sD = maxM / totalDemand;
-        cD = c.maxM / totalDemand;
-        bD = b.maxM / totalDemand;
-        pD = p.maxM / totalDemand;
-        mD = m.maxM / totalDemand;
-        vD = v.maxM / totalDemand;
-        wD = w.maxM / totalDemand;
+        for(int i = 0; i < 7; i++)
+        {
+            demands[i] = organs[i].maxM / totalDemand;
+        }
     }
     float temperature
     {
@@ -321,13 +323,25 @@ public class Structure : Organ
         //print(psionsReleased);
         outMTP += new Vector3(0, 0/*phononsReleased*/, psionsReleased) + toProcessMTP;
 
-        c.inMTP = outMTP * cD;
+        Vector2Int key = new Vector2Int(StructureI, CapacitorI);
+        Vector3 mtp;
+        for (int i = 0; i < 7; i++)
+        {
+            key.y = i;
+            mtp = outMTP * demands[i];
+            mtps[key] = mtp;
+            if(i!=StructureI)
+            organs[i].inMTP = mtp;
+        }
+
+        inMTP += outMTP * demands[StructureI];
+        /*c.inMTP = outMTP * cD;
         w.inMTP = outMTP * wD;
         m.inMTP = outMTP * mD;
         v.inMTP = outMTP * vD;
         p.inMTP = outMTP * pD;
         b.inMTP = outMTP * bD;
-        inMTP += outMTP * sD;
+        inMTP += outMTP * sD;*/
     }
     public void death(string cause)
     {

@@ -12,6 +12,7 @@ public class Pump : Organ
     public Pump(float startHealth, float powerConsumption, float metabolism, float maxM, float maxDrainRate) : base(startHealth, powerConsumption, metabolism, maxM)
     {
         this.maxDrainRate = maxDrainRate;
+        OrganIndex = 5;
     }
 
     public override void absorb()

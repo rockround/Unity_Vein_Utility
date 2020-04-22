@@ -10,7 +10,7 @@ public class Vein : MonoBehaviour
     public float phaseLength = 1;
     public delegate void onTriggered(float lag);
     public event onTriggered onTrigger;
-    Material mat;
+    internal Material mat;
     public Vector3 start, end, startNorm, endNorm;
     public GameObject from, to;
     // Start is called before the first frame update

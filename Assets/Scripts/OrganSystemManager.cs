@@ -6,6 +6,7 @@ using System.Threading;
 using UnityEngine.UI;
 using Unity.Collections;
 using Unity.Jobs;
+using System;
 
 public class OrganSystemManager : MonoBehaviour
 {
@@ -36,9 +37,11 @@ public class OrganSystemManager : MonoBehaviour
     NativeArray<float> temperatures;
     NativeArray<float> charges;
     NativeArray<float> otherData;
-    NativeArray<Vector3> outMTPs;
+    NativeHashMap<Vector2Int, Vector3> mtps;
     int totalOrgans = 7;
     public OrganObject[] objects;
+    public Dictionary<Vector2Int, Vein> pipe2Vein;
+    public Vein[] allVeins;
     public void Awake()
     {
         coreMs = new NativeArray<float>(7, Allocator.Persistent);
@@ -47,10 +50,36 @@ public class OrganSystemManager : MonoBehaviour
         temperatures = new NativeArray<float>(7, Allocator.Persistent);
         charges = new NativeArray<float>(3, Allocator.Persistent);
         otherData = new NativeArray<float>(2, Allocator.Persistent);
-        outMTPs = new NativeArray<Vector3>(7, Allocator.Persistent);
+        mtps = new NativeHashMap<Vector2Int, Vector3>(13, Allocator.Persistent);
+        pipe2Vein = new Dictionary<Vector2Int, Vein>();
+        for(int i = 0; i < 7; i++)
+        {
+            Vector2Int key1 = new Vector2Int(i, Organ.StructureI);
+            Vector2Int key2 = new Vector2Int(Organ.StructureI, i);
+            mtps.Add(key1,Vector3.zero);
+            if (i != Organ.StructureI)
+            {
+                mtps.Add(key2, Vector3.zero);
+            }
+            objects[i].startHealth = startHealths[i];
+        }
+        foreach(Vein v in allVeins)
+        {
+            GameObject from = v.from;
+            GameObject to = v.to;
+            int fromIdx = (int)from.GetComponent<OrganObject>().organType;
+            int toIdx = (int)to.GetComponent<OrganObject>().organType;
+            pipe2Vein.Add(new Vector2Int(fromIdx, toIdx), v);
+        }
+
+
     }
     public void Start()
     {
+        foreach (Vector2Int fromTo in pipe2Vein.Keys)
+        {
+            objects[fromTo.x].outMTPs.Add(pipe2Vein[fromTo], Vector3.zero);
+        }
         //create and start a new thread in the load event.
         //cores = new Slider[] { WriterCore, CapacitorCore, MotorCore, StructureCore, BetaCore, PumpCore, VisionCore };
         //temps = new Slider[] { WriterTemp, CapacitorTemp, MotorTemp, StructureTemp, BetaTemp, PumpTemp, VisionTemp };
@@ -64,9 +93,10 @@ public class OrganSystemManager : MonoBehaviour
         //set mtps
         if(otherData[1] == .01f)
         {
-            for(int i=0; i< 7; i++)
+            //Adds to each organ object the mtp associated with the vein connection for trigger load
+            foreach(Vector2Int fromTo in pipe2Vein.Keys)
             {
-                objects[Organ.StructureI].outMTPs[i] = outMTPs[i];
+                objects[fromTo.x].outMTPs[pipe2Vein[fromTo]]= mtps[fromTo];
             }
         }
         for (int i = 0; i < totalOrgans; i++)
@@ -80,6 +110,9 @@ public class OrganSystemManager : MonoBehaviour
                 {
                     chargeSliders[i].value = (int)(100 * charges[i] / maxCharges[i]);
                 }
+                objects[i].coreM = coreMs[i];
+                objects[i].dynamicM = dynamicMs[i];
+                objects[i].temperature = temperatures[i];
                 //if pulse done
                 if (otherData[1] == .01f)
                 {
@@ -111,6 +144,7 @@ public class OrganSystemManager : MonoBehaviour
     {
         //you need to use Invoke because the new thread can't access the UI elements directly
         s = new Structure(startHealths, metabolisms, powerConsumptions, maxMs, maxCharges, maxBoostCount, betaRate, drainRate, fatGrowth, fatBreakdown, baseBps, homeostasis);
+        s.mtps = mtps;
         s.startSimulation();
         foreach (var number in s.Discrete())
         {
@@ -128,7 +162,6 @@ public class OrganSystemManager : MonoBehaviour
                 dynamicMs[i] = s.organs[i].dynamicM;
                 currentPowers[i] = s.organs[i].currentPower;
                 temperatures[i] = s.organs[i].getTemperature();
-                outMTPs[i] = s.organs[i].outMTP;
                 if (i <= Organ.lastChargeableOrgan)
                 {
                     charges[i] = ((ChargeableOrgan)s.organs[i]).charge;
@@ -161,7 +194,7 @@ public class OrganSystemManager : MonoBehaviour
         charges.Dispose();
         currentPowers.Dispose();
         otherData.Dispose();
-        outMTPs.Dispose();
+        mtps.Dispose();
         t?.Join();
     }
     public void killMainLoop()

@@ -15,6 +15,7 @@ public class Capacitor : ChargeableOrgan
 
     public Capacitor(float startHealth, float powerConsumption, float metabolism, float maxM, float maxCharge) : base(startHealth, powerConsumption, metabolism, maxM, maxCharge)
     {
+        OrganIndex = 1;
     }
 
     public void initPowerDemands()

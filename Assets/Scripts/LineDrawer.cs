@@ -27,7 +27,7 @@ public class LineDrawer : MonoBehaviour
     GameObject newObject;
     Vein newVein;
     OrganObject source, destination;
-
+    public MenuController mc;
 
     public enum BranchMode
     {
@@ -46,174 +46,175 @@ public class LineDrawer : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        if (Input.GetMouseButtonDown(0))
+        if (!mc.canvas.enabled)
         {
-
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit))
+            if (Input.GetMouseButtonDown(0))
             {
-                Collider col = hit.collider;
 
-                numPoints += 1;
-                if (numPoints == 1)
+                RaycastHit hit;
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(ray, out hit))
                 {
-                    lr.positionCount = 0;
-                    newObject = Instantiate(veinObject,hit.transform.root,true);
-                    newVein = newObject.GetComponent<Vein>();
-                    if (hit.transform.name == "endNode")
-                    {
-                        Branch b = hit.transform.GetComponentInParent<Branch>();
-                        Vein root = b.parent;
-                        switch (mode)
-                        {
-                            case BranchMode.lastSurface:
-                                {
-                                    start = root.end;
-                                    startNorm = -root.endNorm;
-                                    break;
-                                }
-                            case BranchMode.newSurface:
-                                {
-                                    start = hit.point;
-                                    startNorm = hit.normal;
-                                    break;
-                                }
-                        }
-                        b.children.Add(newVein);
-                    }                   
-                    else
-                    {
-                        start = hit.point;
-                        print("Start direction: " + hit.normal);
-                        startNorm = hit.normal;
-                        //source = hit.transform.GetComponent<OrganObject>();
+                    Collider col = hit.collider;
 
+                    numPoints += 1;
+                    if (numPoints == 1)
+                    {
+                        lr.positionCount = 0;
+                        newObject = Instantiate(veinObject, hit.transform.root, true);
+                        newVein = newObject.GetComponent<Vein>();
+                        if (hit.transform.name == "endNode")
+                        {
+                            Branch b = hit.transform.GetComponentInParent<Branch>();
+                            Vein root = b.parent;
+                            switch (mode)
+                            {
+                                case BranchMode.lastSurface:
+                                    {
+                                        start = root.end;
+                                        startNorm = -root.endNorm;
+                                        break;
+                                    }
+                                case BranchMode.newSurface:
+                                    {
+                                        start = hit.point;
+                                        startNorm = hit.normal;
+                                        break;
+                                    }
+                            }
+                            b.children.Add(newVein);
+                        }
+                        else
+                        {
+                            start = hit.point;
+                            print("Start direction: " + hit.normal);
+                            startNorm = hit.normal;
+                            //source = hit.transform.GetComponent<OrganObject>();
+
+                        }
+                        newVein.from = hit.transform.gameObject;
                     }
-                    newVein.from = hit.transform.gameObject;
+                    else if (numPoints == 2)
+                    {
+
+                        end = hit.point;
+                        endNorm = -hit.normal;
+                        print("End direction: " + -hit.normal);
+
+                        Tuple<List<Vector3>, List<Vector3>> pointData = generatePoints(start, end, startNorm, endNorm);
+                        List<Vector3> points = pointData.Item1;
+                        List<Vector3> directions = pointData.Item2;
+                        List<Color> colors = new List<Color>();
+
+                        int layers = points.Count;
+
+                        float intensityPerColor = 1f / layers;
+
+                        float deltaUVX = 1f / ringVertices;
+                        float deltaUVY = 1f / layers;
+
+                        for (int i = 0; i < points.Count; i++)
+                        {
+                            lr.positionCount += 1;
+                            Tuple<List<Vector3>, List<Vector3>> pointSet = generateRing(ringVertices, radius, directions[i], points[i]);
+
+
+                            positions.AddRange(pointSet.Item1);
+                            normals.AddRange(pointSet.Item2);
+
+                            //Adds colors corresponding to the layering
+                            for (int j = 0; j < ringVertices; j++)
+                            {
+                                colors.Add(intensityPerColor * i * Color.white);
+                                uvs.Add(new Vector2(deltaUVX * j, deltaUVY * i));
+                            }
+
+                            //point is centroid of tube
+                            lr.SetPosition(i, points[i]);
+                        }
+                        for (int j = 0; j < layers - 1; j++)
+                        {
+                            for (int i = 0; i < ringVertices; i++)
+                            {
+                                int idx1 = i;
+                                int idx2 = (i + 1) % ringVertices;
+                                int layer1 = j;
+                                int layer2 = j + 1;
+                                int a = layer1 * ringVertices + idx1;
+                                int b = layer1 * ringVertices + idx2;
+                                int d = layer2 * ringVertices + idx2;
+                                triangles.Add(a);
+                                triangles.Add(d);
+                                triangles.Add(b);
+                            }
+                            for (int i = 0; i < ringVertices; i++)
+                            {
+
+                                int idx1 = i;
+                                int idx2 = (i + 1) % ringVertices;
+                                int layer1 = j;
+                                int layer2 = j + 1;
+                                int a = layer1 * ringVertices + idx1;
+                                int c = layer2 * ringVertices + idx1;
+                                int d = layer2 * ringVertices + idx2;
+                                triangles.Add(c);
+                                triangles.Add(d);
+                                triangles.Add(a);
+                            }
+                        }
+                        currentMesh = new Mesh();
+                        currentMesh.SetVertices(positions);
+                        currentMesh.SetTriangles(triangles, 0);
+                        currentMesh.SetNormals(normals);
+                        currentMesh.SetUVs(0, uvs);
+                        currentMesh.SetColors(colors);
+                        currentMesh.UploadMeshData(true);
+
+                        newObject.transform.GetChild(0).position = end;
+                        newVein.SetMesh(currentMesh, start, end, startNorm, endNorm);
+                        newVein.to = hit.transform.gameObject;
+                        newObject.name = newVein.from.name + "_" + newVein.to.name;
+
+
+                        uvs.Clear();
+                        normals.Clear();
+
+                        positions.Clear();
+                        triangles.Clear();
+                        numPoints = 0;
+                        /*destination = hit.transform.GetComponent<OrganObject>();
+                        if(destination != null && source != null)
+                        {
+                            source.outBound[(int)destination.organType] = newVein;
+                        }*/
+                        //OrganObject o = hit.transform.GetComponent<OrganObject>();
+                        //if (o != null)
+                        //{
+                        //    o.inBound[(int)o.organType] = newVein;
+                        //}
+                    }
                 }
-                else if (numPoints == 2)
+
+
+            }
+            else
+            {
+                //if vertices already generated
+
+                for (int i = 0; i < triangles.Count; i += 3)
                 {
-
-                    end = hit.point;
-                    endNorm = -hit.normal;
-                    print("End direction: " + -hit.normal);
-
-                    Tuple<List<Vector3>, List<Vector3>> pointData = generatePoints(start, end, startNorm, endNorm);
-                    List<Vector3> points = pointData.Item1;
-                    List<Vector3> directions = pointData.Item2;
-                    List<Color> colors = new List<Color>();
-
-                    int layers = points.Count;
-
-                    float intensityPerColor = 1f / layers;
-
-                    float deltaUVX = 1f / ringVertices;
-                    float deltaUVY = 1f / layers;
-
-                    for (int i = 0; i < points.Count; i++)
-                    {
-                        lr.positionCount += 1;
-                        Tuple<List<Vector3>, List<Vector3>> pointSet = generateRing(ringVertices, radius, directions[i], points[i]);
-
-
-                        positions.AddRange(pointSet.Item1);
-                        normals.AddRange(pointSet.Item2);
-
-                        //Adds colors corresponding to the layering
-                        for (int j = 0; j < ringVertices; j++)
-                        {
-                            colors.Add(intensityPerColor * i * Color.white);
-                            uvs.Add(new Vector2(deltaUVX * j, deltaUVY * i));
-                        }
-
-                        //point is centroid of tube
-                        lr.SetPosition(i, points[i]);
-                    }
-                    for (int j = 0; j < layers - 1; j++)
-                    {
-                        for (int i = 0; i < ringVertices; i++)
-                        {
-                            int idx1 = i;
-                            int idx2 = (i + 1) % ringVertices;
-                            int layer1 = j;
-                            int layer2 = j + 1;
-                            int a = layer1 * ringVertices + idx1;
-                            int b = layer1 * ringVertices + idx2;
-                            int d = layer2 * ringVertices + idx2;
-                            triangles.Add(a);
-                            triangles.Add(d);
-                            triangles.Add(b);
-                        }
-                        for (int i = 0; i < ringVertices; i++)
-                        {
-
-                            int idx1 = i;
-                            int idx2 = (i + 1) % ringVertices;
-                            int layer1 = j;
-                            int layer2 = j + 1;
-                            int a = layer1 * ringVertices + idx1;
-                            int c = layer2 * ringVertices + idx1;
-                            int d = layer2 * ringVertices + idx2;
-                            triangles.Add(c);
-                            triangles.Add(d);
-                            triangles.Add(a);
-                        }
-                    }
-                    currentMesh = new Mesh();
-                    currentMesh.SetVertices(positions);
-                    currentMesh.SetTriangles(triangles, 0);
-                    currentMesh.SetNormals(normals);
-                    currentMesh.SetUVs(0, uvs);
-                    currentMesh.SetColors(colors);
-                    currentMesh.UploadMeshData(true);
-
-                    newObject.transform.GetChild(0).position = end;
-                    newVein.SetMesh(currentMesh,start,end,startNorm,endNorm);
-                    newVein.to = hit.transform.gameObject;
-                    newObject.name = newVein.from.name + "_" + newVein.to.name;
-  
-
-                    uvs.Clear();
-                    normals.Clear();
- 
-                    positions.Clear();
-                    triangles.Clear();
-                    numPoints = 0;
-                    /*destination = hit.transform.GetComponent<OrganObject>();
-                    if(destination != null && source != null)
-                    {
-                        source.outBound[(int)destination.organType] = newVein;
-                    }*/
-                    //OrganObject o = hit.transform.GetComponent<OrganObject>();
-                    //if (o != null)
-                    //{
-                    //    o.inBound[(int)o.organType] = newVein;
-                    //}
+                    Vector3 v1 = positions[triangles[i]];
+                    Vector3 v2 = positions[triangles[i + 1]];
+                    Vector3 v3 = positions[triangles[i + 2]];
+                    Debug.DrawLine(v1, v2, Color.red);
+                    Debug.DrawLine(v2, v3, Color.red);
+                    Debug.DrawLine(v3, v1, Color.red);
                 }
+
+
             }
 
-
         }
-        else
-        {
-            //if vertices already generated
-
-            for (int i = 0; i < triangles.Count; i += 3)
-            {
-                Vector3 v1 = positions[triangles[i]];
-                Vector3 v2 = positions[triangles[i + 1]];
-                Vector3 v3 = positions[triangles[i + 2]];
-                Debug.DrawLine(v1, v2, Color.red);
-                Debug.DrawLine(v2, v3, Color.red);
-                Debug.DrawLine(v3, v1, Color.red);
-            }
-
-
-        }
-
-
     }
     //Returns points and normals of ring points
     public Tuple<List<Vector3>, List<Vector3>> generateRing(int vertexCount, float radius, Vector3 planeNormal, Vector3 planeCenter)

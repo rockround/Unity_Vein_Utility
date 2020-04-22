@@ -13,6 +13,7 @@ public class Writer : ChargeableOrgan
 
     public Writer(float startHealth, float powerConsumption, float metabolism, float maxM, float maxCharge) : base(startHealth, powerConsumption, metabolism, maxM, maxCharge)
     {
+        OrganIndex = 0;
     }
     public override void bruise(float dynamic, float core, bool chunk = false)// assume charge is stored per unit mass in dynamic. Implement dynamic charge-based vaporization ease
     {

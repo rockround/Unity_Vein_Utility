@@ -27,6 +27,7 @@ public class Organ
     public Vector3 inMTP, outMTP, toProcessMTP;
 
     public Structure parent;
+    public int OrganIndex;
 
     public Organ(float startHealth, float powerConsumption, float metabolism, float maxM)
     {
@@ -68,10 +69,16 @@ public class Organ
         outMTP += new Vector3(0, 0/*phononsReleased*/, psionsReleased);
 
         parent.inMTP += netMTP + remainingToFlow;
+        float toStomachM = outMTP.x - netMTP.x + toProcessMTP.x - remainingToFlow.x;
+        float toStomachP = outMTP.z - netMTP.z + toProcessMTP.z - remainingToFlow.z;
+        float toStomachT = outMTP.y - netMTP.y + toProcessMTP.y - remainingToFlow.y;
 
-        parent.stomachM += outMTP.x - netMTP.x + toProcessMTP.x - remainingToFlow.x;     //health inefficiencies leak into stomach
-        parent.psionLevel += outMTP.z - netMTP.z + toProcessMTP.z - remainingToFlow.z;
-        parent.addPhonons(outMTP.y - netMTP.y + toProcessMTP.y - remainingToFlow.y);
+        parent.mtps[new Vector2Int(OrganIndex, StructureI)] = outMTP;
+        //parent.mtps[new Vector2Int(OrganIndex, StructureI)] = new Vector3(toStomachM, toStomachT, toStomachP);
+
+        parent.stomachM += toStomachM;     //health inefficiencies leak into stomach
+        parent.psionLevel += toStomachP;
+        parent.addPhonons(toStomachT);
     }
     public virtual void absorb()
     {
@@ -138,6 +145,7 @@ public class Organ
             parent.stomachM += dynamicDamage + coreDamage;//add organ bruising cascade
             parent.psionLevel += deltaPsion;
             parent.addPhonons(deltaPhonon);
+            //parent.mtps[new Vector2Int(OrganIndex, StructureI)] = new Vector3(dynamicDamage + coreDamage, deltaPhonon, deltaPsion);
         }
         else
         {

@@ -8,6 +8,7 @@ public class MenuController : MonoBehaviour
     public Canvas canvas;
     public GameObject systemRoot;
     public Material veinMat;
+    public const string savePath = @"Assets\Prefabs\NewOrganSystem\";
     // Start is called before the first frame update
     void Start()
     {
@@ -28,13 +29,13 @@ public class MenuController : MonoBehaviour
             {
                 Vein v = mf.transform.GetComponent<Vein>();
                 Mesh m = mf.mesh;
-                string localPathM = @"Assets\Prefabs\NewOrganSystem\" + v.from.name + "_" + v.to.name + ".asset";
+                string localPathM = savePath + v.from.name + "_" + v.to.name + ".asset";
                 AssetDatabase.CreateAsset(m, localPathM);
                 mf.transform.GetComponent<MeshRenderer>().material = veinMat;
             }
         }
         AssetDatabase.SaveAssets();
-        string localPath = @"Assets\Prefabs\NewOrganSystem\NewVeinSystem.prefab";
+        string localPath = savePath + "NewVeinSystem.prefab";
         localPath = AssetDatabase.GenerateUniqueAssetPath(localPath);
         PrefabUtility.SaveAsPrefabAssetAndConnect(systemRoot, localPath, InteractionMode.UserAction);
     }
@@ -44,10 +45,7 @@ public class MenuController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            canvas.enabled = true;
-        }else if (Input.GetKeyUp(KeyCode.Tab))
-        {
-            canvas.enabled = false;
+            canvas.enabled = !canvas.enabled;
         }
     }
 }

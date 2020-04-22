@@ -15,6 +15,7 @@ public class Motor : ChargeableOrgan
     {
         this.maxBoostCount = maxBoostCount;
         chargePerBoost = maxCharge / maxBoostCount;
+        OrganIndex = 2;
     }
     public override void continuousIn()
     {
