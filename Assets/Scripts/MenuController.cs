@@ -30,7 +30,7 @@ public class MenuController : MonoBehaviour
             {
                 Vein v = mf.transform.GetComponent<Vein>();
                 Mesh m = mf.mesh;
-                string localPathM = savePath + v.from.name + "_" + v.to.name + ".asset";
+                string localPathM = savePath + mf.gameObject.name + ".asset";
                 AssetDatabase.CreateAsset(m, localPathM);
                 mf.transform.GetComponent<MeshRenderer>().material = veinMat;
             }

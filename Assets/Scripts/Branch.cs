@@ -9,6 +9,7 @@ public class Branch : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if(children == null || children.Count ==0)
         children = new List<Vein>();
         parent.onTrigger += triggerOthers;
 
