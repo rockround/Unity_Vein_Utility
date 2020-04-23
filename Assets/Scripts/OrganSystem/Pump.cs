@@ -2,13 +2,12 @@
 using System.Collections;
 using UnityEngine;
 using System;
+using System.Runtime.Remoting.Proxies;
 
 public class Pump : Organ
 {
     //input static parameters
     public float maxDrainRate;
-
-
     public Pump(float startHealth, float powerConsumption, float metabolism, float maxM, float maxDrainRate) : base(startHealth, powerConsumption, metabolism, maxM)
     {
         this.maxDrainRate = maxDrainRate;
@@ -48,13 +47,19 @@ public class Pump : Organ
         float toCvt = drainAmt * currentPower;
         parent.stomachM -= toCvt;
         parent.dynamicM += toCvt;
-
         //psion pump unique, splits how much toCvt is sent to output, how much is leaked into organ psion level
         float realP = toCvt * EnergyManager.psionPerKg;
         outMTP.z += realP * healthiness;
         psionLevel += realP * (1 - healthiness);
 
+        parent.mtps[new Vector2Int(StomachI, PumpI)] += new Vector3(toCvt, 0, 0);
+
         outMTP += deltaMTP;
+    }
+    public override void flowIn()
+    {
+        parent.mtps[new Vector2Int(StomachI, PumpI)] = Vector3.zero;
+        base.flowIn();
     }
 
     public float drainAmt

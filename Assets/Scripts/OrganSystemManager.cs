@@ -14,14 +14,14 @@ public class OrganSystemManager : MonoBehaviour
     bool stop, pause;
     public Structure s;
     int lastIdx = -1;
-    float[] startHealths = { 8, 3, 3, 200, 6, 3, 3 };
+    float[] startHealths = { 8, 3, 3, 80, 6, 3, 3 };//s used to be 200
     float[] metabolisms = { .1f, .1f, .1f, .1f, .1f, .1f, .1f };
-    float[] maxMs = { 7, 1, 1, 1, 1, 1, 1 };
+    float[] maxMs = { 5, 1, 1, 1, 1, 1, 1 };//7
     float[] powerConsumptions = { 2, .01f, 3, .01f, .01f, .01f, .01f };
     float[] maxCharges = { 100, 100, 100 };
     int maxBoostCount = 2;
-    float betaRate = 1.7f;
-    float drainRate = 1;
+    float betaRate = 1.7f;//1.7f;
+    float drainRate = .1f;
     float fatGrowth = 1;
     float fatBreakdown = 1;
     float baseBps = 1;
@@ -34,6 +34,7 @@ public class OrganSystemManager : MonoBehaviour
     NativeArray<float> coreMs;
     NativeArray<float> currentPowers;
     NativeArray<float> dynamicMs;
+    NativeArray<float> psions;
     NativeArray<float> temperatures;
     NativeArray<float> charges;
     NativeArray<float> otherData;
@@ -42,34 +43,44 @@ public class OrganSystemManager : MonoBehaviour
     public OrganObject[] objects;
     public Dictionary<Vector2Int, Vein> pipe2Vein;
     public Vein[] allVeins;
+    public bool damageCap = false;
+    public bool simulateEat = false;
+    public bool simulateHeat = false;
     public void Awake()
     {
         coreMs = new NativeArray<float>(7, Allocator.Persistent);
         currentPowers = new NativeArray<float>(7, Allocator.Persistent);
         dynamicMs = new NativeArray<float>(7, Allocator.Persistent);
         temperatures = new NativeArray<float>(7, Allocator.Persistent);
+        psions = new NativeArray<float>(7, Allocator.Persistent);
+
         charges = new NativeArray<float>(3, Allocator.Persistent);
-        otherData = new NativeArray<float>(2, Allocator.Persistent);
+        otherData = new NativeArray<float>(3, Allocator.Persistent);
         mtps = new NativeHashMap<Vector2Int, Vector3>(13, Allocator.Persistent);
         pipe2Vein = new Dictionary<Vector2Int, Vein>();
-        for(int i = 0; i < 7; i++)
+        for (int i = 0; i < 7; i++)
         {
             Vector2Int key1 = new Vector2Int(i, Organ.StructureI);
             Vector2Int key2 = new Vector2Int(Organ.StructureI, i);
-            mtps.Add(key1,Vector3.zero);
+            Vector2Int key3 = new Vector2Int(i, Organ.StomachI);
+            mtps.Add(key1, Vector3.zero);
+            mtps.Add(key3, Vector3.zero);
             if (i != Organ.StructureI)
             {
                 mtps.Add(key2, Vector3.zero);
             }
             objects[i].startHealth = startHealths[i];
         }
-        foreach(Vein v in allVeins)
+        mtps.Add(new Vector2Int(Organ.StomachI, Organ.PumpI), Vector3.zero);
+        foreach (Vein v in allVeins)
         {
             GameObject from = v.from;
             GameObject to = v.to;
             int fromIdx = (int)from.GetComponent<OrganObject>().organType;
             int toIdx = (int)to.GetComponent<OrganObject>().organType;
             pipe2Vein.Add(new Vector2Int(fromIdx, toIdx), v);
+            if(toIdx != Organ.StomachI && fromIdx != Organ.StomachI)
+            v.radius = maxMs[toIdx] / 50;
         }
 
 
@@ -80,6 +91,7 @@ public class OrganSystemManager : MonoBehaviour
         {
             objects[fromTo.x].outMTPs.Add(pipe2Vein[fromTo], Vector3.zero);
         }
+
         //create and start a new thread in the load event.
         //cores = new Slider[] { WriterCore, CapacitorCore, MotorCore, StructureCore, BetaCore, PumpCore, VisionCore };
         //temps = new Slider[] { WriterTemp, CapacitorTemp, MotorTemp, StructureTemp, BetaTemp, PumpTemp, VisionTemp };
@@ -91,13 +103,18 @@ public class OrganSystemManager : MonoBehaviour
     {
         HeartRate.text = otherData[0] + "";
         //set mtps
-        if(otherData[1] == .01f)
+        Vector2Int key = new Vector2Int(Organ.StomachI, Organ.PumpI);
+
+        if (otherData[1] == .01f)
         {
             //Adds to each organ object the mtp associated with the vein connection for trigger load
-            foreach(Vector2Int fromTo in pipe2Vein.Keys)
+            foreach (Vector2Int fromTo in pipe2Vein.Keys)
             {
-                objects[fromTo.x].outMTPs[pipe2Vein[fromTo]]= mtps[fromTo];
+                objects[fromTo.x].outMTPs[pipe2Vein[fromTo]] = mtps[fromTo];
             }
+            objects[Organ.StomachI].outMTPs[pipe2Vein[key]] = mtps[key];
+            objects[Organ.StomachI].dynamicM = otherData[2];
+            objects[Organ.StomachI].fire();
         }
         for (int i = 0; i < totalOrgans; i++)
         {
@@ -113,6 +130,7 @@ public class OrganSystemManager : MonoBehaviour
                 objects[i].coreM = coreMs[i];
                 objects[i].dynamicM = dynamicMs[i];
                 objects[i].temperature = temperatures[i];
+                objects[i].psions = psions[i];
                 //if pulse done
                 if (otherData[1] == .01f)
                 {
@@ -132,8 +150,21 @@ public class OrganSystemManager : MonoBehaviour
             }
 
         }
-
-
+        if (damageCap)
+        {
+            damageCap = false;
+            s.organs[Organ.CapacitorI].bruise(1, 0);
+        }
+        if (simulateEat)
+        {
+            simulateEat = false;
+            s.stomachM += 10;
+        }
+        if (simulateHeat)
+        {
+            simulateHeat = false;
+            s.tKe = 7200;
+        }
     }
     void Update()
     {
@@ -143,7 +174,6 @@ public class OrganSystemManager : MonoBehaviour
     public void mainLoop(float simRate)
     {
         //you need to use Invoke because the new thread can't access the UI elements directly
-        s = new Structure(startHealths, metabolisms, powerConsumptions, maxMs, maxCharges, maxBoostCount, betaRate, drainRate, fatGrowth, fatBreakdown, baseBps, homeostasis);
         s.mtps = mtps;
         s.startSimulation();
         foreach (var number in s.Discrete())
@@ -155,12 +185,13 @@ public class OrganSystemManager : MonoBehaviour
             }
             //print(s.coreM + " " + s.dynamicM);
             otherData[0] = s.curBps;
-
+            otherData[2] = s.stomachM;
             for (int i = 0; i < 7; i++)
             {
                 coreMs[i] = s.organs[i].coreM;
                 dynamicMs[i] = s.organs[i].dynamicM;
                 currentPowers[i] = s.organs[i].currentPower;
+                psions[i] = s.organs[i].psionLevel;
                 temperatures[i] = s.organs[i].getTemperature();
                 if (i <= Organ.lastChargeableOrgan)
                 {
@@ -170,7 +201,6 @@ public class OrganSystemManager : MonoBehaviour
             }
             if (stop)
                 break;
-
             //If was a blood pump cycle
             //if (number < .05f)
             //    otherData[1] = 1;
@@ -195,6 +225,7 @@ public class OrganSystemManager : MonoBehaviour
         currentPowers.Dispose();
         otherData.Dispose();
         mtps.Dispose();
+        psions.Dispose();
         t?.Join();
     }
     public void killMainLoop()
@@ -226,6 +257,7 @@ public class OrganSystemManager : MonoBehaviour
         }
         pause = false;
         stop = false;
+        s = new Structure(startHealths, metabolisms, powerConsumptions, maxMs, maxCharges, maxBoostCount, betaRate, drainRate, fatGrowth, fatBreakdown, baseBps, homeostasis);
 
         t = new Thread(() => mainLoop(SimRateSlider.value));
         t.Start();

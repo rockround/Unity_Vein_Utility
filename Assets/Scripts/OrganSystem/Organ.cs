@@ -13,6 +13,7 @@ public class Organ
     public const int PumpI = 5;
     public const int VisionI = 6;
     public const int lastChargeableOrgan = 2;
+    public const int StomachI = 7;
     //input static parameters
     public float startHealth, pC, metabolism, maxM;
 
@@ -145,7 +146,7 @@ public class Organ
             parent.stomachM += dynamicDamage + coreDamage;//add organ bruising cascade
             parent.psionLevel += deltaPsion;
             parent.addPhonons(deltaPhonon);
-            //parent.mtps[new Vector2Int(OrganIndex, StructureI)] = new Vector3(dynamicDamage + coreDamage, deltaPhonon, deltaPsion);
+            parent.mtps[new Vector2Int(OrganIndex, StomachI)] = new Vector3(dynamicDamage + coreDamage, deltaPhonon, deltaPsion);
         }
         else
         {

@@ -8,7 +8,8 @@ public class MenuController : MonoBehaviour
     public Canvas canvas;
     public GameObject systemRoot;
     public Material veinMat;
-    public const string savePath = @"Assets\Prefabs\NewOrganSystem\";
+    public string savePath = @"Assets\Prefabs\NewOrganSystem\";
+    public string saveName = "NewVeinSystem";
     // Start is called before the first frame update
     void Start()
     {
@@ -35,7 +36,7 @@ public class MenuController : MonoBehaviour
             }
         }
         AssetDatabase.SaveAssets();
-        string localPath = savePath + "NewVeinSystem.prefab";
+        string localPath = savePath + saveName + ".prefab";
         localPath = AssetDatabase.GenerateUniqueAssetPath(localPath);
         PrefabUtility.SaveAsPrefabAssetAndConnect(systemRoot, localPath, InteractionMode.UserAction);
     }

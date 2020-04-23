@@ -13,10 +13,12 @@ public class Vein : MonoBehaviour
     internal Material mat;
     public Vector3 start, end, startNorm, endNorm;
     public GameObject from, to;
+    public float radius;
     // Start is called before the first frame update
     void Start()
     {
         mat = mr.material;
+        mat.SetFloat("_radius", radius);
     }
     internal void forceTrigger()
     {
